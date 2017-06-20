@@ -1,18 +1,19 @@
 package net.ddns.jsonet.rcon;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import net.ddns.jsonet.rcon.logging.EndUserFormatter;
+import net.ddns.jsonet.rcon.logging.LogFileFormatter;
 
 public class RconClient {
 	public static void main(String[] args) {
@@ -42,13 +43,13 @@ public class RconClient {
 		}
 		in.close();
 		
-		Logger.getGlobal().info(hostname + ":" + port);
+		Logger.getLogger("net.ddns.jsonet.rcon").info(hostname + ":" + port);
 		
 		// Attempt a connection
 		try {
 			ServerAPI.get().connect(hostname, port);
 		} catch (IOException e) {
-			Logger.getGlobal().log(Level.SEVERE, "Failed to establish connection", e);
+			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to establish connection", e);
 			System.exit(1);
 		}
 	}
@@ -70,9 +71,16 @@ public class RconClient {
 	}
 
 	private static void setupLogger() throws IOException {
-		Logger global = Logger.getGlobal();
-		FileHandler handle = new FileHandler("client.log", true);
-		handle.setFormatter(new SimpleFormatter());
-		global.addHandler(handle);
+		Logger logger = Logger.getLogger("net.ddns.jsonet.rcon");
+		logger.setUseParentHandlers(false);
+		
+		FileHandler fileHandler = new FileHandler("client.log");
+		fileHandler.setFormatter(new LogFileFormatter());
+		fileHandler.setLevel(Level.ALL);
+		logger.addHandler(fileHandler);
+		
+		StreamHandler cmdHandler = new StreamHandler(System.out, new EndUserFormatter());
+		cmdHandler.setLevel(Level.INFO);
+		logger.addHandler(cmdHandler);
 	}
 }
