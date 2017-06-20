@@ -1,8 +1,10 @@
 package net.ddns.jsonet.rcon;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import org.apache.commons.cli.BasicParser;
@@ -43,12 +45,18 @@ public class RconClient {
 		Logger.getGlobal().info(hostname + ":" + port);
 		
 		// Attempt a connection
-		establishConnection(hostname, port);
+		try {
+			establishConnection(hostname, port);
+		} catch (IOException e) {
+			Logger.getGlobal().log(Level.SEVERE, "Failed to establish connection", e);
+		}
 	}
 
 	
-	private static void establishConnection(String hostname, int port) {
-		
+	private static void establishConnection(String hostname, int port) throws IOException {
+		Socket client = new Socket(hostname, port);
+		Logger.getGlobal().info("Connected to server!");
+		client.close();
 	}
 	
 	private static CommandLine parseOptions(String[] args) {
