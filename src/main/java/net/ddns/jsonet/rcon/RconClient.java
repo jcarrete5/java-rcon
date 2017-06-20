@@ -21,19 +21,7 @@ public class RconClient {
 			e.printStackTrace();
 		}
 		
-		Options opts = new Options();
-		opts.addOption("H", "hostname", true, "Specify the hostname to connect to");
-		opts.addOption("p", "port", true, "Port to connect to");
-		CommandLineParser parser = new BasicParser();
-		CommandLine cmd = null;
-		try {
-			cmd = parser.parse(opts, args);
-		} catch (ParseException e) {
-			HelpFormatter format = new HelpFormatter();
-			format.printHelp("java -jar java-rcon.jar", opts, true);
-			e.printStackTrace();
-			System.exit(1);
-		}
+		CommandLine cmd = parseOptions(args);
 		
 		String hostname = cmd.getOptionValue('H');
 		int port = 25575;
@@ -53,6 +41,30 @@ public class RconClient {
 		in.close();
 		
 		Logger.getGlobal().info(hostname + ":" + port);
+		
+		// Attempt a connection
+		establishConnection(hostname, port);
+	}
+
+	
+	private static void establishConnection(String hostname, int port) {
+		
+	}
+	
+	private static CommandLine parseOptions(String[] args) {
+		Options opts = new Options();
+		opts.addOption("H", "hostname", true, "Specify the hostname to connect to");
+		opts.addOption("p", "port", true, "Port to connect to");
+		CommandLineParser parser = new BasicParser();
+		try {
+			return parser.parse(opts, args);
+		} catch (ParseException e) {
+			HelpFormatter format = new HelpFormatter();
+			format.printHelp("java -jar java-rcon.jar", opts, true);
+			e.printStackTrace();
+			System.exit(1);
+			return null;
+		}
 	}
 
 	private static void setupLogger() throws IOException {
