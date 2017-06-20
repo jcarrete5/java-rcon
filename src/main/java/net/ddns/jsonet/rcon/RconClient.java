@@ -52,13 +52,11 @@ public class RconClient {
 		}
 		in.close();
 		
-		Logger.getLogger("net.ddns.jsonet.rcon").info(hostname + ":" + port + " -- passwd: " + passwd);
-		
 		// Attempt a connection
 		try {
 			ServerAPI.get().connect(hostname, port);
 		} catch (IOException e) {
-			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to establish connection", e);
+			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to establish connection to " + hostname + ":" + port, e);
 			System.exit(1);
 		}
 	}
