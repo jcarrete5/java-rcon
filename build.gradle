@@ -19,6 +19,7 @@ repositories {
 
 dependencies {
 	compile 'commons-cli:commons-cli:1.2'
+	compile 'com.google.guava:guava:21.0'
     testCompile 'junit:junit:4.12'
 }
 
