@@ -18,7 +18,21 @@ repositories {
 }
 
 dependencies {
+	compile 'commons-cli:commons-cli:1.2'
     testCompile 'junit:junit:4.12'
 }
 
 mainClassName = 'net.ddns.jsonet.rcon.RconClient'
+run {
+	// Add arguments
+	def argList = []
+	if (project.hasProperty('hostname')) {
+		argList.addAll(['-H', hostname])
+	}
+	if (project.hasProperty('port')) {
+		argList.addAll(['-p', port])
+	}
+	args = argList
+	
+	standardInput = System.in
+}
