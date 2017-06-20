@@ -36,6 +36,10 @@ public class ServerAPI {
 			client = new Socket();
 		}
 		
+		client.setKeepAlive(true);
+		client.setTrafficClass(0x04);
+		client.setSendBufferSize(1460);
+		client.setReceiveBufferSize(1234);
 		client.connect(new InetSocketAddress(hostname, port));
 	}
 	

@@ -46,18 +46,11 @@ public class RconClient {
 		
 		// Attempt a connection
 		try {
-			establishConnection(hostname, port);
+			ServerAPI.get().connect(hostname, port);
 		} catch (IOException e) {
 			Logger.getGlobal().log(Level.SEVERE, "Failed to establish connection", e);
 			System.exit(1);
 		}
-	}
-
-	private static void establishConnection(String hostname, int port) throws IOException {
-		Socket client = new Socket(hostname, port);
-		client.setKeepAlive(true);
-		client.setTrafficClass(0x04);
-		System.out.println("Connection established");
 	}
 	
 	private static CommandLine parseOptions(String[] args) {
