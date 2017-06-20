@@ -28,6 +28,7 @@ public class RconClient {
 		
 		String hostname = cmd.getOptionValue('H');
 		int port = 25575;
+		String passwd =	cmd.getOptionValue('P');
 		
 		Scanner in = new Scanner(System.in);
 		if (hostname == null) {
@@ -41,9 +42,17 @@ public class RconClient {
 				port = Integer.parseInt(line);
 			}
 		}
+		if (passwd == null) {
+			if (System.console() == null) {
+				System.out.print("Password: ");
+				passwd = in.nextLine();
+			} else {
+				passwd = String.valueOf(System.console().readPassword("Password: "));
+			}
+		}
 		in.close();
 		
-		Logger.getLogger("net.ddns.jsonet.rcon").info(hostname + ":" + port);
+		Logger.getLogger("net.ddns.jsonet.rcon").info(hostname + ":" + port + " -- passwd: " + passwd);
 		
 		// Attempt a connection
 		try {
@@ -58,6 +67,7 @@ public class RconClient {
 		Options opts = new Options();
 		opts.addOption("H", "hostname", true, "Specify the hostname to connect to");
 		opts.addOption("p", "port", true, "Port to connect to");
+		opts.addOption("P", "password", true, "Password used to connect to the server");
 		CommandLineParser parser = new BasicParser();
 		try {
 			return parser.parse(opts, args);

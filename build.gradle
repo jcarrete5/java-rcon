@@ -33,6 +33,9 @@ run {
 	if (project.hasProperty('port')) {
 		argList.addAll(['-p', port])
 	}
+	if (project.hasProperty('password')) {
+		argList.addAll(['-P', password]);
+	}
 	args = argList
 	
 	standardInput = System.in
