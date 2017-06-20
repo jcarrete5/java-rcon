@@ -1,7 +1,6 @@
 package net.ddns.jsonet.rcon;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
