@@ -128,6 +128,10 @@ public class ServerAPI {
 		private Packet(int type, byte[] payload) {
 			length = 10 + payload.length;
 			this.requestId = UUID.randomUUID().hashCode();
+			while (this.requestId == -1) {
+				// Request ID can't be -1
+				this.requestId = UUID.randomUUID().hashCode();
+			}
 			this.type = type;
 			this.payload = payload;
 			if (length + 4 > MAX_PACKET_SIZE) {
