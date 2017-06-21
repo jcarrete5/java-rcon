@@ -12,6 +12,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import com.google.common.base.Charsets;
 import net.ddns.jsonet.rcon.ServerAPI.Packet;
 import net.ddns.jsonet.rcon.logging.EndUserFormatter;
 import net.ddns.jsonet.rcon.logging.LogFileFormatter;
@@ -51,7 +52,6 @@ public class RconClient {
 				passwd = String.valueOf(System.console().readPassword("Password: "));
 			}
 		}
-		in.close();
 		
 		// Attempt a connection
 		ServerAPI api = ServerAPI.get();
@@ -76,8 +76,36 @@ public class RconClient {
 			System.exit(1);
 		}
 		
-		// Handle input
-		
+		handleInput(in);
+	}
+	
+	/**
+	 * All input is sent "as-is" to the server.
+	 */
+	private static void handleInput(Scanner in) {
+		ServerAPI api = ServerAPI.get();
+		while (true) {
+			System.out.print("> ");
+			String cmd = in.nextLine();
+			
+			int requestId;
+			try {
+				requestId = api.sendCommand(cmd);
+			} catch (IOException e) {
+				Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to send command '"+cmd+"'", e);
+				continue;
+			}
+			
+			try {
+				Packet p = api.parsePacket();
+				if (p.getRequestID() == requestId) {
+					String resp = new String(p.getRawData(), Charsets.US_ASCII);
+					System.out.println(resp);
+				}
+			} catch (IOException e) {
+				Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to parse response packet", e);
+			}
+		}
 	}
 	
 	private static CommandLine parseOptions(String[] args) {
