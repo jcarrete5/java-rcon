@@ -53,10 +53,18 @@ public class RconClient {
 		in.close();
 		
 		// Attempt a connection
+		ServerAPI api = ServerAPI.get();
 		try {
-			ServerAPI.get().connect(hostname, port);
+			api.connect(hostname, port);
 		} catch (IOException e) {
 			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to establish connection to " + hostname + ":" + port, e);
+			System.exit(1);
+		}
+		
+		try {
+			api.authenticate(passwd);
+		} catch (IOException e) {
+			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to authenticate with " + hostname + ":" + port, e);
 			System.exit(1);
 		}
 	}
