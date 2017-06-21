@@ -22,6 +22,7 @@ public class LogFileFormatter extends Formatter {
 			formatted.append('\n');
 			formatted.append(record.getThrown());
 		}
+		formatted.append('\n');
 		return formatted.toString();
 	}
 }

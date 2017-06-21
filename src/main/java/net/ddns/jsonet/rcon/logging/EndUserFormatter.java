@@ -10,6 +10,7 @@ public class EndUserFormatter extends Formatter {
 		formatted.append('[' + record.getLevel().getName() + ']');
 		formatted.append(' ');
 		formatted.append(formatMessage(record));
+		formatted.append('\n');
 		return formatted.toString();
 	}
 }
