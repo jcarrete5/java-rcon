@@ -2,10 +2,10 @@ package net.ddns.jsonet.rcon;
 
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.StreamHandler;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -61,6 +61,7 @@ public class RconClient {
 			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to establish connection to " + hostname + ":" + port, e);
 			System.exit(1);
 		}
+		Logger.getLogger("net.ddns.jsonet.rcon").info("Connected to "+hostname+":"+port);
 		
 		// Authenticate
 		try {
@@ -75,12 +76,14 @@ public class RconClient {
 			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to authenticate with " + hostname + ":" + port, e);
 			System.exit(1);
 		}
+		Logger.getLogger("net.ddns.jsonet.rcon").info("Authentication successful");
 		
 		handleInput(in);
 	}
 	
 	/**
 	 * All input is sent "as-is" to the server.
+	 * TODO Parse commands before sending them for specific application commands
 	 */
 	private static void handleInput(Scanner in) {
 		ServerAPI api = ServerAPI.get();
@@ -134,8 +137,8 @@ public class RconClient {
 		fileHandler.setLevel(Level.ALL);
 		logger.addHandler(fileHandler);
 		
-		StreamHandler cmdHandler = new StreamHandler(System.out, new EndUserFormatter());
-		cmdHandler.setLevel(Level.INFO);
+		ConsoleHandler cmdHandler = new ConsoleHandler();
+		cmdHandler.setFormatter(new EndUserFormatter());
 		logger.addHandler(cmdHandler);
 	}
 }
