@@ -12,6 +12,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import net.ddns.jsonet.rcon.ServerAPI.Packet;
 import net.ddns.jsonet.rcon.logging.EndUserFormatter;
 import net.ddns.jsonet.rcon.logging.LogFileFormatter;
 
@@ -61,12 +62,22 @@ public class RconClient {
 			System.exit(1);
 		}
 		
+		// Authenticate
 		try {
-			api.authenticate(passwd);
+			int reqId = api.authenticate(passwd);
+			Packet p = api.parsePacket();
+			if (p.getRequestID() == -1 && p.getRequestID() != reqId) {
+				// Auth failed
+				Logger.getLogger("net.ddns.jsonet.rcon").severe("Auth failed: Invalid passphrase");
+				System.exit(1);
+			}
 		} catch (IOException e) {
 			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to authenticate with " + hostname + ":" + port, e);
 			System.exit(1);
 		}
+		
+		// Handle input
+		
 	}
 	
 	private static CommandLine parseOptions(String[] args) {

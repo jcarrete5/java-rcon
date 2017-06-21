@@ -44,7 +44,7 @@ public class ServerAPI {
 		client.setKeepAlive(true);
 		client.setTrafficClass(0x04);
 		client.setSendBufferSize(1460);
-		client.setReceiveBufferSize(1234);
+		client.setReceiveBufferSize(4096);
 		client.connect(new InetSocketAddress(hostname, port));
 	}
 	
@@ -87,9 +87,32 @@ public class ServerAPI {
 	/**
 	 * Parses an incoming packet.
 	 * @return the parsed packet.
+	 * @throws IOException if the packet failed to parse
 	 */
-	public Packet parsePacket() {
+	public Packet parsePacket() throws IOException {
 		Packet p = new Packet();
+		byte[] in = new byte[4096];
+		ByteBuffer buf = ByteBuffer.wrap(in);
+		buf.order(ByteOrder.LITTLE_ENDIAN);
+		
+		int bytesRead = 0;
+		while (bytesRead < 12) {
+			buf.position(bytesRead);
+			bytesRead += client.getInputStream().read(in, bytesRead, buf.remaining());
+		}
+		buf.rewind();
+		p.length = buf.getInt();
+		p.requestId = buf.getInt();
+		p.type = buf.getInt();
+		p.payload = new byte[p.length - 10];
+		
+		buf.mark();
+		while (bytesRead - 12 < p.payload.length + 2) {
+			buf.position(bytesRead);
+			bytesRead += client.getInputStream().read(in, bytesRead, buf.remaining());
+		}
+		buf.reset();
+		buf.get(p.payload);
 		return p;
 	}
 	
