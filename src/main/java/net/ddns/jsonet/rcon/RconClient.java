@@ -18,6 +18,8 @@ import net.ddns.jsonet.rcon.logging.EndUserFormatter;
 import net.ddns.jsonet.rcon.logging.LogFileFormatter;
 
 public class RconClient {
+	private static final String cmdDelimiter = ";";
+	
 	public static void main(String[] args) {
 		try {
 			setupLogger();
@@ -31,6 +33,7 @@ public class RconClient {
 		String hostname = cmd.getOptionValue('H');
 		int port = 25575;
 		String passwd =	cmd.getOptionValue('P');
+		String commands = cmd.getOptionValue('c');
 		
 		Scanner in = new Scanner(System.in);
 		if (hostname == null) {
@@ -78,7 +81,35 @@ public class RconClient {
 		}
 		Logger.getLogger("net.ddns.jsonet.rcon").info("Authentication successful");
 		
-		handleInput(in);
+		if (commands == null) {
+			handleInput(in);
+		} else {
+			// TODO this won't allow commands to contain and instances of cmdDelimiter
+			for (String command : commands.split(cmdDelimiter)) {
+				issueCommand(command);
+			}
+		}
+	}
+	
+	private static void issueCommand(String cmd) {
+		ServerAPI api = ServerAPI.get();
+		int requestId;
+		try {
+			requestId = api.sendCommand(cmd);
+		} catch (IOException e) {
+			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to send command '"+cmd+"'", e);
+			return;
+		}
+		
+		try {
+			Packet p = api.parsePacket();
+			if (p.getRequestID() == requestId) {
+				String resp = new String(p.getRawData(), Charsets.US_ASCII);
+				System.out.println(resp);
+			}
+		} catch (IOException e) {
+			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to parse response packet", e);
+		}
 	}
 	
 	/**
@@ -86,28 +117,10 @@ public class RconClient {
 	 * TODO Parse commands before sending them for specific application commands
 	 */
 	private static void handleInput(Scanner in) {
-		ServerAPI api = ServerAPI.get();
 		while (true) {
 			System.out.print("> ");
 			String cmd = in.nextLine();
-			
-			int requestId;
-			try {
-				requestId = api.sendCommand(cmd);
-			} catch (IOException e) {
-				Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to send command '"+cmd+"'", e);
-				continue;
-			}
-			
-			try {
-				Packet p = api.parsePacket();
-				if (p.getRequestID() == requestId) {
-					String resp = new String(p.getRawData(), Charsets.US_ASCII);
-					System.out.println(resp);
-				}
-			} catch (IOException e) {
-				Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to parse response packet", e);
-			}
+			issueCommand(cmd);
 		}
 	}
 	
@@ -116,6 +129,7 @@ public class RconClient {
 		opts.addOption("H", "hostname", true, "Specify the hostname to connect to");
 		opts.addOption("p", "port", true, "Port to connect to");
 		opts.addOption("P", "password", true, "Password used to connect to the server");
+		opts.addOption("c", "command", true, "Sends commands delimited by '"+cmdDelimiter+"' to the remote server");
 		CommandLineParser parser = new BasicParser();
 		try {
 			return parser.parse(opts, args);
