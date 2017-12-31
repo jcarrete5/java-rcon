@@ -120,7 +120,11 @@ public class RconClient {
 		while (true) {
 			System.out.print("> ");
 			String cmd = in.nextLine();
-			issueCommand(cmd);
+			if (cmd.startsWith(".")) {
+				Command.executeCommandWithName(cmd.substring(1));
+			} else {
+				issueCommand(cmd);
+			}
 		}
 	}
 	
