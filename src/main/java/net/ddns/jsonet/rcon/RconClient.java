@@ -114,7 +114,6 @@ public class RconClient {
 	
 	/**
 	 * All input is sent "as-is" to the server.
-	 * TODO Parse commands before sending them for specific application commands
 	 */
 	private static void handleInput(Scanner in) {
 		while (true) {

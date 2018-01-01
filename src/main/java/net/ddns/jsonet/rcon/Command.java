@@ -21,18 +21,30 @@ public enum Command {
 		return null;
 	});
 
-	private Function<Object[], ?> action;
+	private Function<Object[], Void> action;
 
-	Command(Function<Object[], ?> action) {
+	Command(Function<Object[], Void> action) {
 		this.action = action;
 	}
 
-	public static void executeCommandWithName(String name, Object... args) {
+	/**
+	 * Attempts to execute a command called {@code name} with {@code args}.
+	 * @param name Name of the command
+	 * @param args Arguments for the command
+	 * @return {@code true} if the command exists and was executed, otherwise {@code false}
+	 */
+	public static boolean executeCommandWithName(String name, Object... args) {
 		try {
 			Command cmd = Command.valueOf(name);
-			cmd.action.apply(args);
+			cmd.execute(args);
+			return true;
 		} catch (IllegalArgumentException e) {
-			//TODO Handle this exception
+			Logger.getLogger("net.ddns.jsonet.rcon").info("Unknown client command: "+name);
+			return false;
 		}
+	}
+
+	public void execute(Object... args) {
+		action.apply(args);
 	}
 }
