@@ -3,6 +3,7 @@ package net.ddns.jsonet.rcon;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.UUID;
@@ -40,9 +41,14 @@ public class ServerAPI {
 		if (client.isClosed()) {
 			client = new Socket();
 		}
-		
+
 		client.setKeepAlive(true);
-		client.setTrafficClass(0x04);
+		try {
+			client.setTrafficClass(0x04);
+		} catch (SocketException e) {
+			// It's okay if we cannot set the traffic class
+			Logger.getLogger("net.ddns.jsonet.rcon").warning("Failed to set socket traffic class");
+		}
 		client.setSendBufferSize(1460);
 		client.setReceiveBufferSize(4096);
 		client.connect(new InetSocketAddress(hostname, port));
