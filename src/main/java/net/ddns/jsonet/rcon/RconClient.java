@@ -46,6 +46,8 @@ public class RconClient {
 			if (!line.equals("")) {
 				port = Integer.parseInt(line);
 			}
+		} else {
+			port = Integer.parseInt(cmd.getOptionValue('p'));
 		}
 		if (passwd == null) {
 			if (System.console() == null) {
