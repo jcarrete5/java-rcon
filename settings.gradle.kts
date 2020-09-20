@@ -8,4 +8,4 @@
  * in the user guide at https://docs.gradle.org/3.5/userguide/multi_project_builds.html
  */
 
-rootProject.name = 'java-rcon'
+rootProject.name = "java-rcon"
