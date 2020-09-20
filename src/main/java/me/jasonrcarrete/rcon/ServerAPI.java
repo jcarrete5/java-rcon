@@ -1,4 +1,4 @@
-package net.ddns.jsonet.rcon;
+package me.jasonrcarrete.rcon;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -7,7 +7,6 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.UUID;
-import java.util.logging.Logger;
 import com.google.common.base.Charsets;
 
 public class ServerAPI {
@@ -47,7 +46,7 @@ public class ServerAPI {
 			client.setTrafficClass(0x04);
 		} catch (SocketException e) {
 			// It's okay if we cannot set the traffic class
-			Logger.getLogger("net.ddns.jsonet.rcon").warning("Failed to set socket traffic class");
+			System.err.println("Failed to set socket traffic class");
 		}
 		client.setSendBufferSize(1460);
 		client.setReceiveBufferSize(4096);
@@ -141,7 +140,7 @@ public class ServerAPI {
 			this.type = type;
 			this.payload = payload;
 			if (length + 4 > MAX_PACKET_SIZE) {
-				Logger.getLogger("net.ddns.jsonet.rcon").warning("Packet #"+requestId+" size exceeds maximum packet size");
+				System.err.printf("Packet (ID #%d) size exceeds maximum packet size\n", requestId);
 			}
 		}
 		

@@ -1,4 +1,4 @@
-package net.ddns.jsonet.rcon;
+package me.jasonrcarrete.rcon;
 
 import java.io.IOException;
 import java.util.function.Function;

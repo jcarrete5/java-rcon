@@ -1,85 +1,73 @@
-package net.ddns.jsonet.rcon;
+package me.jasonrcarrete.rcon;
 
+import java.io.Console;
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+
 import com.google.common.base.Charsets;
-import net.ddns.jsonet.rcon.ServerAPI.Packet;
-import net.ddns.jsonet.rcon.logging.EndUserFormatter;
-import net.ddns.jsonet.rcon.logging.LogFileFormatter;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Option;
 
 public class RconClient {
 	private static final String cmdDelimiter = ";";
-	
+
+	@Option(names = {"-H", "--hostname"}, description = "The hostname to connect to", defaultValue = "localhost")
+	static String hostname;
+
+	@Option(names = {"-p", "--port"}, description = "The port to connect to", defaultValue = "25575")
+	static int port;
+
+	@Option(names = {"-P", "--password"}, description = "Password used for authentication")
+	static String password;
+
+	private enum ExitCode {
+		CONNECTION_ERROR(1),
+		AUTH_FAILED(2);
+
+		public final int code;
+
+		ExitCode(final int code) {
+			this.code = code;
+		}
+	}
+
 	public static void main(String[] args) {
-		try {
-			setupLogger();
-		} catch (IOException e) {
-			System.err.println("Failed to setup logger!");
-			e.printStackTrace();
-		}
-		
-		CommandLine cmd = parseOptions(args);
-		
-		String hostname = cmd.getOptionValue('H');
-		int port = 25575;
-		String passwd =	cmd.getOptionValue('P');
-		String commands = cmd.getOptionValue('c');
-		
-		Scanner in = new Scanner(System.in);
-		if (hostname == null) {
-			System.out.print("Hostname: ");
-			hostname = in.nextLine();
-		}
-		if (cmd.getOptionValue('p') == null) {
-			System.out.print("Port (Default: 25575): ");
-			String line = in.nextLine();
-			if (!line.equals("")) {
-				port = Integer.parseInt(line);
-			}
-		} else {
-			port = Integer.parseInt(cmd.getOptionValue('p'));
-		}
-		if (passwd == null) {
-			if (System.console() == null) {
+		final Scanner in = new Scanner(System.in);
+		if (password == null) {
+		    final Console console = System.console();
+			if (console == null) {
 				System.out.print("Password: ");
-				passwd = in.nextLine();
+				password = in.nextLine();
 			} else {
-				passwd = String.valueOf(System.console().readPassword("Password: "));
+				password = String.valueOf(console.readPassword("Password: "));
 			}
 		}
-		
-		// Attempt a connection
+
 		ServerAPI api = ServerAPI.get();
 		try {
 			api.connect(hostname, port);
 		} catch (IOException e) {
-			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to establish connection to " + hostname + ":" + port, e);
-			System.exit(1);
+			System.err.printf("Failed to establish connection to %s:%d\n", hostname, port);
+			e.printStackTrace();
+			System.exit(ExitCode.CONNECTION_ERROR.code);
 		}
-		Logger.getLogger("net.ddns.jsonet.rcon").info("Connected to "+hostname+":"+port);
+		System.out.printf("Connected to %s:%d\n", hostname, port);
 		
-		// Authenticate
 		try {
-			int reqId = api.authenticate(passwd);
-			Packet p = api.parsePacket();
+			int reqId = api.authenticate(password);
+			ServerAPI.Packet p = api.parsePacket();
 			if (p.getRequestID() == -1 && p.getRequestID() != reqId) {
-				// Auth failed
-				Logger.getLogger("net.ddns.jsonet.rcon").severe("Auth failed: Invalid passphrase");
-				System.exit(1);
+				System.err.println("Auth failed: Invalid passphrase");
+				System.exit(ExitCode.AUTH_FAILED.code);
 			}
 		} catch (IOException e) {
-			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to authenticate with " + hostname + ":" + port, e);
-			System.exit(1);
+			System.err.printf("Failed to authenticate with %s:%d\n", hostname, port);
+			e.printStackTrace();
+			System.exit(ExitCode.CONNECTION_ERROR.code);
 		}
 		Logger.getLogger("net.ddns.jsonet.rcon").info("Authentication successful");
 		
@@ -104,7 +92,7 @@ public class RconClient {
 		}
 		
 		try {
-			Packet p = api.parsePacket();
+			ServerAPI.Packet p = api.parsePacket();
 			if (p.getRequestID() == requestId) {
 				String resp = new String(p.getRawData(), Charsets.US_ASCII);
 				System.out.println(resp);
