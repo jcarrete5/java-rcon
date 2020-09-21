@@ -6,18 +6,18 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import com.google.common.base.Charsets;
 
 public class ServerAPI {
 	private static ServerAPI instance;
 	
 	public static ServerAPI get() {
 		if (instance == null) {
-			return instance = new ServerAPI();
-		} else {
-			return instance;
+			instance = new ServerAPI();
 		}
+		return instance;
 	}
 	
 	private Socket client;
@@ -29,18 +29,15 @@ public class ServerAPI {
 	/**
 	 * Attempts a to connect to the remote rcon server. If the ServerAPI is alreader connected
 	 * to a remote server, invoking this method will close the connection and create a new connection.
+     * Precondition: client is not already connected
 	 * @param hostname address of the remote server.
 	 * @param port port the remote server is listening on.
 	 * @throws IOException if the connection fails for some reason.
 	 */
 	public void connect(String hostname, int port) throws IOException {
 		if (client.isConnected()) {
-			client.close();
+		    throw new IllegalStateException("Client was already connected");
 		}
-		if (client.isClosed()) {
-			client = new Socket();
-		}
-
 		client.setKeepAlive(true);
 		try {
 			client.setTrafficClass(0x04);
@@ -55,6 +52,7 @@ public class ServerAPI {
 	
 	public void disconnect() throws IOException {
 		client.close();
+		client = new Socket();
 	}
 	
 	/**
@@ -67,8 +65,7 @@ public class ServerAPI {
 		if (client.isClosed() || !client.isConnected()) {
 			throw new IllegalStateException("Tried to authenticate with a server before connecting to it!");
 		}
-		
-		Packet p = new Packet(Packet.TYPE_LOGIN, asciiPassword.getBytes(Charsets.US_ASCII));
+		Packet p = new Packet(Packet.TYPE_LOGIN, asciiPassword.getBytes(StandardCharsets.US_ASCII));
 		p.send();
 		return p.getRequestID();
 	}
@@ -109,6 +106,8 @@ public class ServerAPI {
 		p.length = buf.getInt();
 		p.requestId = buf.getInt();
 		p.type = buf.getInt();
+		// Length includes requestId, type, and the two null bytes.
+		// Subtract 10 to ignore those values from the payload size.
 		p.payload = new byte[p.length - 10];
 		
 		buf.mark();
@@ -124,7 +123,7 @@ public class ServerAPI {
 	public class Packet {
 		public static final int MAX_PACKET_SIZE = 1460;
 		public static final int TYPE_LOGIN = 3, TYPE_COMMAND = 2, TYPE_CMD_RESPONSE = 0;
-		
+
 		private int length, requestId, type;
 		private byte[] payload;
 		
@@ -146,11 +145,9 @@ public class ServerAPI {
 		
 		private void send() throws IOException {
 			byte[] out = new byte[length + 4];
-			
 			ByteBuffer buf = ByteBuffer.wrap(out);
 			buf.order(ByteOrder.LITTLE_ENDIAN);
 			buf.putInt(length).putInt(requestId).putInt(type).put(payload).putShort((short)0);
-			
 			client.getOutputStream().write(out);
 		}
 		

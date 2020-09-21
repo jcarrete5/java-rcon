@@ -8,7 +8,6 @@ repositories {
 
 dependencies {
 	implementation("info.picocli:picocli:4.5.1")
-	implementation("com.google.guava:guava:21.0")
 	annotationProcessor("info.picocli:picocli-codegen:4.5.1")
 	testImplementation("junit:junit:4.12")
 }

@@ -1,28 +1,24 @@
 package me.jasonrcarrete.rcon;
 
-import java.io.Console;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Scanner;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.Callable;
+import picocli.CommandLine;
 
-import com.google.common.base.Charsets;
-import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Option;
-
-public class RconClient {
-	private static final String cmdDelimiter = ";";
-
-	@Option(names = {"-H", "--hostname"}, description = "The hostname to connect to", defaultValue = "localhost")
-	static String hostname;
-
-	@Option(names = {"-p", "--port"}, description = "The port to connect to", defaultValue = "25575")
-	static int port;
-
-	@Option(names = {"-P", "--password"}, description = "Password used for authentication")
-	static String password;
+@CommandLine.Command(name = "java-rcon")
+public class RconClient implements Callable<Integer> {
+	@CommandLine.Option(names = {"-H", "--hostname"}, description = "The hostname to connect to", defaultValue = "localhost")
+	String hostname;
+	@CommandLine.Option(names = {"-p", "--port"}, description = "The port to connect to", defaultValue = "25575")
+	int port;
+	@CommandLine.Option(names = {"-P", "--password"}, description = "Password used for authentication", interactive = true)
+	String password;
+	@CommandLine.Option(names = {"-h", "--help"}, description = "Show help information")
+	boolean help;
+	@CommandLine.Parameters
+	List<String> commands;
 
 	private enum ExitCode {
 		CONNECTION_ERROR(1),
@@ -36,16 +32,12 @@ public class RconClient {
 	}
 
 	public static void main(String[] args) {
+		System.exit(new CommandLine(new RconClient()).execute(args));
+	}
+
+	@Override
+	public Integer call() throws Exception {
 		final Scanner in = new Scanner(System.in);
-		if (password == null) {
-		    final Console console = System.console();
-			if (console == null) {
-				System.out.print("Password: ");
-				password = in.nextLine();
-			} else {
-				password = String.valueOf(console.readPassword("Password: "));
-			}
-		}
 
 		ServerAPI api = ServerAPI.get();
 		try {
@@ -53,7 +45,7 @@ public class RconClient {
 		} catch (IOException e) {
 			System.err.printf("Failed to establish connection to %s:%d\n", hostname, port);
 			e.printStackTrace();
-			System.exit(ExitCode.CONNECTION_ERROR.code);
+			return ExitCode.CONNECTION_ERROR.code;
 		}
 		System.out.printf("Connected to %s:%d\n", hostname, port);
 		
@@ -62,50 +54,51 @@ public class RconClient {
 			ServerAPI.Packet p = api.parsePacket();
 			if (p.getRequestID() == -1 && p.getRequestID() != reqId) {
 				System.err.println("Auth failed: Invalid passphrase");
-				System.exit(ExitCode.AUTH_FAILED.code);
+				return ExitCode.AUTH_FAILED.code;
 			}
 		} catch (IOException e) {
 			System.err.printf("Failed to authenticate with %s:%d\n", hostname, port);
 			e.printStackTrace();
-			System.exit(ExitCode.CONNECTION_ERROR.code);
+			return ExitCode.CONNECTION_ERROR.code;
 		}
-		Logger.getLogger("net.ddns.jsonet.rcon").info("Authentication successful");
+		System.out.println("Authentication successful");
 		
-		if (commands == null) {
+		if (commands.isEmpty()) {
 			handleInput(in);
 		} else {
-			// TODO this won't allow commands to contain and instances of cmdDelimiter
-			for (String command : commands.split(cmdDelimiter)) {
-				issueCommand(command);
-			}
+		    commands.forEach(RconClient::issueCommand);
 		}
+
+		return 0;
 	}
 	
 	private static void issueCommand(String cmd) {
-		ServerAPI api = ServerAPI.get();
+		final ServerAPI api = ServerAPI.get();
 		int requestId;
 		try {
 			requestId = api.sendCommand(cmd);
 		} catch (IOException e) {
-			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to send command '"+cmd+"'", e);
+			System.err.printf("Failed to send command: '%s'\n", cmd);
+			e.printStackTrace();
 			return;
 		}
 		
 		try {
 			ServerAPI.Packet p = api.parsePacket();
 			if (p.getRequestID() == requestId) {
-				String resp = new String(p.getRawData(), Charsets.US_ASCII);
+				String resp = new String(p.getRawData(), StandardCharsets.US_ASCII);
 				System.out.println(resp);
 			}
 		} catch (IOException e) {
-			Logger.getLogger("net.ddns.jsonet.rcon").log(Level.SEVERE, "Failed to parse response packet", e);
+			System.err.println("Failed to parse response packet");
+			e.printStackTrace();
 		}
 	}
 	
 	/**
 	 * All input is sent "as-is" to the server.
 	 */
-	private static void handleInput(Scanner in) {
+	private static void handleInput(final Scanner in) {
 		while (true) {
 			System.out.print("> ");
 			String cmd = in.nextLine();
@@ -115,37 +108,5 @@ public class RconClient {
 				issueCommand(cmd);
 			}
 		}
-	}
-	
-	private static CommandLine parseOptions(String[] args) {
-		Options opts = new Options();
-		opts.addOption("H", "hostname", true, "Specify the hostname to connect to");
-		opts.addOption("p", "port", true, "Port to connect to");
-		opts.addOption("P", "password", true, "Password used to connect to the server");
-		opts.addOption("c", "command", true, "Sends commands delimited by '"+cmdDelimiter+"' to the remote server");
-		CommandLineParser parser = new BasicParser();
-		try {
-			return parser.parse(opts, args);
-		} catch (ParseException e) {
-			HelpFormatter format = new HelpFormatter();
-			format.printHelp("java -jar java-rcon.jar", opts, true);
-			e.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-
-	private static void setupLogger() throws IOException {
-		Logger logger = Logger.getLogger("net.ddns.jsonet.rcon");
-		logger.setUseParentHandlers(false);
-		
-		FileHandler fileHandler = new FileHandler("client.log");
-		fileHandler.setFormatter(new LogFileFormatter());
-		fileHandler.setLevel(Level.ALL);
-		logger.addHandler(fileHandler);
-		
-		ConsoleHandler cmdHandler = new ConsoleHandler();
-		cmdHandler.setFormatter(new EndUserFormatter());
-		logger.addHandler(cmdHandler);
 	}
 }
